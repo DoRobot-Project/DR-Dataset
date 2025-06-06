@@ -24,8 +24,8 @@ from .lerobot_dataset import (
     MultiLeRobotDataset,
 )
 from .transforms import ImageTransforms
-from .policies import PreTrainedConfig
-from .train import TrainPipelineConfig
+from .config_policies import PreTrainedConfig
+from .config_train import TrainPipelineConfig
 
 IMAGENET_STATS = {
     "mean": [[[0.485]], [[0.456]], [[0.406]]],  # (c,1,1)
