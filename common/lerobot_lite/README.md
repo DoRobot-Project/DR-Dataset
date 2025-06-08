@@ -35,4 +35,9 @@ pip install diffusers
 pip install zarr
 pip install pymunk
 pip install gym-pusht
+pip install imagecodecs
+pip install tensorflow
+pip install tensorflow_datasets
+pip install numba
+pip install flask
 ```
