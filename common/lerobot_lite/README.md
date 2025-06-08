@@ -40,4 +40,6 @@ pip install tensorflow
 pip install tensorflow_datasets
 pip install numba
 pip install flask
+pip install draccus
+pip install deepdiff
 ```

@@ -72,9 +72,6 @@ from lerobot_lite.datasets.lerobot_dataset import LeRobotDataset
 from lerobot_lite.utils.dataset import IterableNamespace
 from lerobot_lite.utils.utils import init_logging
 
-import os
-import shutil
-from pathlib import Path
 
 
 def run_server(
@@ -383,29 +380,10 @@ def visualize_dataset_html(
         # Create a simlink from the dataset video folder containing mp4 files to the output directory
         # so that the http server can get access to the mp4 files.
         if isinstance(dataset, LeRobotDataset):
-
             ln_videos_dir = static_dir / "videos"
 
-            source = (dataset.root / "videos").resolve()
-            target = ln_videos_dir
-
-            if os.name == 'posix':  # Linux or macOS
-                target.symlink_to(source)
-            elif os.name == 'nt':   # Windows
-                # 方法一：使用硬链接目录（需要管理员权限）
-                # os.symlink(source, target, target_is_directory=True)  # 同样可能报错
-                
-                # 方法二：直接复制文件夹（推荐用于普通用户）
-                if not target.exists():
-                    shutil.copytree(source, target)
-
-                
-                # 或者方法三：创建 .lnk 快捷方式（非程序可操作，需第三方库如 pywin32）
-            else:
-                raise OSError(f"Unsupported OS: {os.name}")
-
-            # if not ln_videos_dir.exists():
-            #     ln_videos_dir.symlink_to((dataset.root / "videos").resolve())
+            if not ln_videos_dir.exists():
+                ln_videos_dir.symlink_to((dataset.root / "videos").resolve())
 
         if serve:
             run_server(dataset, episodes, host, port, static_dir, template_dir)
