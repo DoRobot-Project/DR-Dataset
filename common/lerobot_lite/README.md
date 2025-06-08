@@ -27,4 +27,12 @@ pip install huggingface-hub
 # pip install opencv-python
 conda install -y -c conda-forge "opencv>=4.10.0"
 
+pip install gymnasium==0.29.1
+pip install einops
+pip install safetensors
+pip install imageio[ffmpeg]
+pip install diffusers
+pip install zarr
+pip install pymunk
+pip install gym-pusht
 ```

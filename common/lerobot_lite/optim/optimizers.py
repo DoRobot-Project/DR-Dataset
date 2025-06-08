@@ -21,12 +21,12 @@ import draccus
 import torch
 from safetensors.torch import load_file, save_file
 
-from lerobot.common.constants import (
+from ..constants import (
     OPTIMIZER_PARAM_GROUPS,
     OPTIMIZER_STATE,
 )
-from lerobot.common.datasets.utils import flatten_dict, unflatten_dict, write_json
-from lerobot.common.utils.io_utils import deserialize_json_into_object
+from ..utils.dataset import flatten_dict, unflatten_dict, write_json
+from ..utils.io_utils import deserialize_json_into_object
 
 
 @dataclass
