@@ -9,6 +9,7 @@ from lerobot_lite.configs import parser
 from lerobot_lite.configs.policies import PreTrainedConfig
 from lerobot_lite.datasets.lerobot_dataset import *
 from lerobot_lite.utils.robot_devices import busy_wait, safe_disconnect
+from lerobot_lite.utils.robots import make_robot_from_config
 from lerobot_lite.utils.utils import has_method, init_logging, log_say
 
 
@@ -38,7 +39,7 @@ class RecordControlConfig(ControlConfig):
     root: str | Path | None = None
     policy: PreTrainedConfig | None = None
     # Limit the frames per second. By default, uses the policy fps.
-    fps: int | None = None
+    fps: int = 30
     # Number of seconds before starting data collection. It allows the robot devices to warmup and synchronize.
     warmup_time_s: int | float = 10
     # Number of seconds for data recording for each episode.
@@ -77,7 +78,7 @@ class RecordControlConfig(ControlConfig):
         if policy_path:
             cli_overrides = parser.get_cli_overrides("control.policy")
             self.policy = PreTrainedConfig.from_pretrained(policy_path, cli_overrides=cli_overrides)
-            self.policy.pretrained_path = policy_path
+            # self.policy.pretrained_path = policy_path
 
 @dataclass
 class ControlPipelineConfig:
@@ -110,12 +111,12 @@ def sanity_check_dataset_name(repo_id, policy_cfg):
 
 
 def sanity_check_dataset_robot_compatibility(
-    dataset: LeRobotDataset, robot: Robot, fps: int, use_videos: bool
+    dataset: LeRobotDataset, robot: RobotConfig, fps: int, use_videos: bool
 ) -> None:
     fields = [
-        ("robot_type", dataset.meta.robot_type, robot.robot_type),
+        ("robot_type", dataset.meta.robot_type, robot.type),
         ("fps", dataset.fps, fps),
-        ("features", dataset.features, get_features_from_robot(robot, use_videos)),
+        # ("features", dataset.features, get_features_from_robot(robot, use_videos)),
     ]
 
     mismatches = []
@@ -132,7 +133,7 @@ def sanity_check_dataset_robot_compatibility(
 
 
 @safe_disconnect
-def teleoperate(cfg: TeleoperateControlConfig):
+def teleoperate(robot_cfg: RobotConfig, teleope_cfg: TeleoperateControlConfig):
     # control_loop(
     #     robot,
     #     control_time_s=cfg.teleop_time_s,
@@ -145,37 +146,36 @@ def teleoperate(cfg: TeleoperateControlConfig):
 
 @safe_disconnect
 def record(
-    robot: Robot,
-    cfg: RecordControlConfig) -> LeRobotDataset:
-    # TODO(rcadene): Add option to record logs
+    robot_cfg: RobotConfig,
+    record_cfg: RecordControlConfig) -> LeRobotDataset:
 
     print("In Record")
-    if cfg.resume:
+    if record_cfg.resume:
         dataset = LeRobotDataset(
-            cfg.repo_id,
-            root=cfg.root,
+            record_cfg.repo_id,
+            root=record_cfg.root,
         )
-        if len(robot.cameras) > 0:
+        if len(robot_cfg.cameras) > 0:
             dataset.start_image_writer(
-                num_processes=cfg.num_image_writer_processes,
-                num_threads=cfg.num_image_writer_threads_per_camera * len(robot.cameras),
+                num_processes=record_cfg.num_image_writer_processes,
+                num_threads=record_cfg.num_image_writer_threads_per_camera * len(robot_cfg.cameras),
             )
-        sanity_check_dataset_robot_compatibility(dataset, robot, cfg.fps, cfg.video)
+        sanity_check_dataset_robot_compatibility(dataset, robot_cfg, record_cfg.fps, record_cfg.video)
     else:
         # Create empty dataset or load existing saved episodes
-        sanity_check_dataset_name(cfg.repo_id, cfg.policy)
+        sanity_check_dataset_name(record_cfg.repo_id, record_cfg.policy)
         dataset = LeRobotDataset.create(
-            cfg.repo_id,
-            cfg.fps,
-            root=cfg.root,
+            record_cfg.repo_id,
+            record_cfg.fps,
+            root=record_cfg.root,
             robot=robot,
-            use_videos=cfg.video,
-            image_writer_processes=cfg.num_image_writer_processes,
-            image_writer_threads=cfg.num_image_writer_threads_per_camera * len(robot.cameras),
+            use_videos=record_cfg.video,
+            image_writer_processes=record_cfg.num_image_writer_processes,
+            image_writer_threads=record_cfg.num_image_writer_threads_per_camera * len(robot.cameras),
         )
 
     # Load pretrained policy
-    policy = None if cfg.policy is None else make_policy(cfg.policy, ds_meta=dataset.meta)
+    policy = None if record_cfg.policy is None else make_policy(record_cfg.policy, ds_meta=dataset.meta)
 
     if not robot.is_connected:
         robot.connect()
@@ -249,11 +249,13 @@ def main(cfg: ControlPipelineConfig):
     init_logging()
     logging.info(pformat(asdict(cfg)))
 
+    robot = make_robot_from_config(cfg.robot)
+
     if isinstance(cfg.control, TeleoperateControlConfig):
-        teleoperate(cfg.control)
+        teleoperate(robot, cfg.control)
     elif isinstance(cfg.control, RecordControlConfig):
         record(robot, cfg.control)
 
 
 if __name__ == "__main__":
-    main()
+    main() # type: ignore
