@@ -14,7 +14,7 @@
 
 from typing import Protocol
 
-from lerobot_lite.configs.robot import (
+from lerobot_lite.robots.configs import (
     AlohaRobotConfig,
     KochBimanualRobotConfig,
     KochRobotConfig,
@@ -75,37 +75,37 @@ def make_robot_config(robot_type: str, **kwargs) -> RobotConfig:
         raise ValueError(f"Robot type '{robot_type}' is not available.")
 
 
-# def make_robot_from_config(config: RobotConfig):
-#     if isinstance(config, ManipulatorRobotConfig):
-#         from lerobot.common.robot_devices.robots.manipulator import ManipulatorRobot
-#         print("In ManipulatorRobotConfig")
-#         return ManipulatorRobot(config)
+def make_robot_from_config(config: RobotConfig):
+    if isinstance(config, ManipulatorRobotConfig):
+        from lerobot.common.robot_devices.robots.manipulator import ManipulatorRobot
+        print("In ManipulatorRobotConfig")
+        return ManipulatorRobot(config)
     
-#     elif isinstance(config, LeKiwiRobotConfig):
-#         from lerobot.common.robot_devices.robots.mobile_manipulator import MobileManipulator
-#         print("In LeKiwiRobotConfig")
-#         return MobileManipulator(config)
+    elif isinstance(config, LeKiwiRobotConfig):
+        from lerobot.common.robot_devices.robots.mobile_manipulator import MobileManipulator
+        print("In LeKiwiRobotConfig")
+        return MobileManipulator(config)
     
-#     elif isinstance(config, AdoraRobotConfig):
-#         from lerobot.common.robot_devices.robots.adora_manipulator import AdoraManipulator
-#         print("In AdoraRobotConfig")
-#         return AdoraManipulator(config)
+    elif isinstance(config, AdoraRobotConfig):
+        from lerobot.common.robot_devices.robots.adora_manipulator import AdoraManipulator
+        print("In AdoraRobotConfig")
+        return AdoraManipulator(config)
     
-#     elif isinstance(config, AdoraDualRobotConfig):
-#         from lerobot.common.robot_devices.robots.adora_dual_manipulator import AdoraDualManipulator
-#         print("In AdoraDualRobotConfig")
-#         return AdoraDualManipulator(config)
+    elif isinstance(config, AdoraDualRobotConfig):
+        from lerobot.common.robot_devices.robots.adora_dual_manipulator import AdoraDualManipulator
+        print("In AdoraDualRobotConfig")
+        return AdoraDualManipulator(config)
     
-#     elif isinstance(config, RealmanRobotConfig):
-#         from lerobot.common.robot_devices.robots.realman_manipulator import RealmanManipulator
-#         print("In RealmanRobotConfig")
-#         return RealmanManipulator(config)
+    elif isinstance(config, RealmanRobotConfig):
+        from lerobot.common.robot_devices.robots.realman_manipulator import RealmanManipulator
+        print("In RealmanRobotConfig")
+        return RealmanManipulator(config)
     
-#     else: 
-#         from lerobot.common.robot_devices.robots.stretch import StretchRobot
-#         return StretchRobot(config)
+    else: 
+        from lerobot.common.robot_devices.robots.stretch import StretchRobot
+        return StretchRobot(config)
 
 
-# def make_robot(robot_type: str, **kwargs) -> Robot:
-#     config = make_robot_config(robot_type, **kwargs)
-#     return make_robot_from_config(config)
+def make_robot(robot_type: str, **kwargs) -> Robot:
+    config = make_robot_config(robot_type, **kwargs)
+    return make_robot_from_config(config)
