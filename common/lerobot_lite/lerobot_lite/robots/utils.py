@@ -63,6 +63,10 @@ def make_robot_from_config(config: RobotConfig):
         from lerobot_lite.robots.adora_manipulator import AdoraManipulator
         print("In AdoraRobotConfig")
         return AdoraManipulator(config)
+    elif isinstance(config, AlohaRobotConfig):
+        from lerobot_lite.robots.aloha_manipulator import AlohaManipulator
+        print("In AlohaManipulator")
+        return AlohaManipulator(config)
     
     # elif isinstance(config, AdoraDualRobotConfig):
     #     from lerobot.common.robot_devices.robots.adora_dual_manipulator import AdoraDualManipulator

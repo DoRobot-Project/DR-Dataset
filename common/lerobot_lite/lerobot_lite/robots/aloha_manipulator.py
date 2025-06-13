@@ -31,6 +31,25 @@ from lerobot_lite.configs.cameras import CameraConfig, OpenCVCameraConfig
 import zmq
 
 
+# IPC Address
+ipc_address = "ipc:///tmp/dora-zeromq"
+context = zmq.Context()
+socket = context.socket(zmq.PAIR)
+socket.bind(ipc_address)
+running_server = True
+
+images = {}
+
+def recv_server():
+    while running_server:
+        try:
+            message = socket.recv_json()
+            # if message:
+            #     print("recieve:", message)
+            #     node.send_output("message", pa.array(message))
+        except Exception as e:
+            print("recv error:", e)
+            break
 
 class OpenCVCamera:
     def __init__(self, config: OpenCVCameraConfig):
@@ -77,7 +96,7 @@ def make_cameras_from_configs(camera_configs: dict[str, CameraConfig]) -> list[C
 
 
 
-class AdoraManipulator:
+class AlohaManipulator:
     def __init__(self, config: AdoraDualRobotConfig):
         self.config = config
         self.robot_type = self.config.type
@@ -151,50 +170,50 @@ class AdoraManipulator:
                 "KochRobot is not connected. You need to run `robot.connect()`."
             )
 
-        for name in self.leader_arms:
-            # if name == "left":
-            #     continue
-            # 读取领导臂电机数据
-            read_start = time.perf_counter()
-            leader_pos = self.leader_arms[name].async_read("Present_Position")
-            # self.follower_arms[name].leader_pos = leader_pos
-            self.logs[f"read_leader_{name}_pos_dt_s"] = time.perf_counter() - read_start
+        # for name in self.leader_arms:
+        #     # if name == "left":
+        #     #     continue
+        #     # 读取领导臂电机数据
+        #     read_start = time.perf_counter()
+        #     leader_pos = self.leader_arms[name].async_read("Present_Position")
+        #     # self.follower_arms[name].leader_pos = leader_pos
+        #     self.logs[f"read_leader_{name}_pos_dt_s"] = time.perf_counter() - read_start
 
-            # 电机数据到关节角度的转换，关节角度处理（向量化操作）
-            for i in range(7):
-                # 数值转换
-                value = round(leader_pos[i] * SCALE_FACTOR, 2)
+        #     # 电机数据到关节角度的转换，关节角度处理（向量化操作）
+        #     for i in range(7):
+        #         # 数值转换
+        #         value = round(leader_pos[i] * SCALE_FACTOR, 2)
 
-                # 特定关节取反（3号和5号）
-                if i in {3, 5}:
-                    value = -value
+        #         # 特定关节取反（3号和5号）
+        #         if i in {3, 5}:
+        #             value = -value
 
-                # 限幅
-                clamped_value = max(self.follower_arms[name].joint_n_limit[i], min(self.follower_arms[name].joint_p_limit[i], value))
+        #         # 限幅
+        #         clamped_value = max(self.follower_arms[name].joint_n_limit[i], min(self.follower_arms[name].joint_p_limit[i], value))
 
-                # 移动平均滤波
-                # filter_value = self.follower_arms[name].filters[i].update(clamped_value)
+        #         # 移动平均滤波
+        #         # filter_value = self.follower_arms[name].filters[i].update(clamped_value)
 
-                # if abs(filter_value - self.filters[i].get_last()) / WINDOW_SIZE > 180 ##超180度/s位移限制，暂时不弄
+        #         # if abs(filter_value - self.filters[i].get_last()) / WINDOW_SIZE > 180 ##超180度/s位移限制，暂时不弄
 
-                # 直接使用内存视图操作
+        #         # 直接使用内存视图操作
 
-                # self.follower_arms[name].joint_teleop_write[i] = filter_value
-                self.follower_arms[name].joint_teleop_write[i] = clamped_value
+        #         # self.follower_arms[name].joint_teleop_write[i] = filter_value
+        #         self.follower_arms[name].joint_teleop_write[i] = clamped_value
 
-            # 电机角度到夹爪开合度的换算
-            giper_value = leader_pos[7] * GRIPPER_SCALE
-            self.follower_arms[name].clipped_gripper = max(0, min(100, int(giper_value)))
+        #     # 电机角度到夹爪开合度的换算
+        #     giper_value = leader_pos[7] * GRIPPER_SCALE
+        #     self.follower_arms[name].clipped_gripper = max(0, min(100, int(giper_value)))
 
-            # 机械臂执行动作（调用透传API，控制gen72移动到目标位置）
-            write_start = time.perf_counter()
-            self.follower_arms[name].movej_canfd(self.follower_arms[name].joint_teleop_write)
-            if self.frame_counter % 5 == 0:
-                self.frame_counter = 0
-                self.follower_arms[name].write_single_register(self.follower_arms[name].clipped_gripper)
-            self.logs[f"write_follower_{name}_goal_pos_dt_s"] = time.perf_counter() - write_start
+        #     # 机械臂执行动作（调用透传API，控制gen72移动到目标位置）
+        #     write_start = time.perf_counter()
+        #     self.follower_arms[name].movej_canfd(self.follower_arms[name].joint_teleop_write)
+        #     if self.frame_counter % 5 == 0:
+        #         self.frame_counter = 0
+        #         self.follower_arms[name].write_single_register(self.follower_arms[name].clipped_gripper)
+        #     self.logs[f"write_follower_{name}_goal_pos_dt_s"] = time.perf_counter() - write_start
 
-        print("end teleoperate")
+        # print("end teleoperate")
 
         if not record_data:
             return
@@ -204,13 +223,13 @@ class AdoraManipulator:
             eight_byte_array = np.zeros(8, dtype=np.float32)
             
             now = time.perf_counter()
-            joint_teleop_read = self.follower_arms[name].async_read_joint_degree()
+            # joint_teleop_read = self.follower_arms[name].async_read_joint_degree()
 
             
-            eight_byte_array[:7] = joint_teleop_read[:]
+            # eight_byte_array[:7] = joint_teleop_read[:]
 
-            eight_byte_array[7] = self.follower_arms[name].old_grasp
-            eight_byte_array = np.round(eight_byte_array, 2)
+            # eight_byte_array[7] = self.follower_arms[name].old_grasp
+            # eight_byte_array = np.round(eight_byte_array, 2)
             self.logs[f"read_follower_{name}_pos_dt_s"] = time.perf_counter() - now
             follower_pos[name] = torch.from_numpy(eight_byte_array)
         
@@ -227,18 +246,21 @@ class AdoraManipulator:
         action = []
         for name in self.leader_arms:
             goal_eight_byte_array = np.zeros(8, dtype=np.float32)
-            goal_eight_byte_array[:7] = self.follower_arms[name].joint_teleop_write[:]
-            goal_eight_byte_array[7] = self.follower_arms[name].clipped_gripper
+            # goal_eight_byte_array[:7] = self.follower_arms[name].joint_teleop_write[:]
+            # goal_eight_byte_array[7] = self.follower_arms[name].clipped_gripper
             follower_goal_pos = torch.from_numpy(goal_eight_byte_array)
 
             action.append(follower_goal_pos)
         action = torch.cat(action)
 
         # Capture images from cameras
-        images = {}
+        
         for name in self.cameras:
             now = time.perf_counter()
-            images[name] = self.cameras[name].async_read()
+            
+
+
+            # images[name] = self.cameras[name].async_read()
             images[name] = torch.from_numpy(images[name])
             self.logs[f"read_camera_{name}_dt_s"] = self.cameras[name].logs["delta_timestamp_s"]
             self.logs[f"async_read_camera_{name}_dt_s"] = time.perf_counter() - now

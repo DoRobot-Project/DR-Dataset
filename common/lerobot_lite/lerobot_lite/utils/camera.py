@@ -16,7 +16,7 @@ from typing import Protocol
 
 import numpy as np
 
-from lerobot.common.robot_devices.cameras.configs import (
+from lerobot_lite.configs.cameras import (
     CameraConfig,
     IntelRealSenseCameraConfig,
     OpenCVCameraConfig,
