@@ -28,28 +28,74 @@ import logging
 
 from lerobot_lite.configs.cameras import CameraConfig, OpenCVCameraConfig
 
+import threading
+import cv2
+
 import zmq
 
 
 # IPC Address
 ipc_address = "ipc:///tmp/dora-zeromq"
+
 context = zmq.Context()
 socket = context.socket(zmq.PAIR)
-socket.bind(ipc_address)
-running_server = True
+socket.connect(ipc_address)
+socket.setsockopt(zmq.RCVTIMEO, 100)  # 设置接收超时（毫秒）
 
-images = {}
+running_server = True
+recv_images = {}  # 缓存每个 event_id 的最新帧
+lock = threading.Lock()  # 线程锁
 
 def recv_server():
+    """接收数据线程"""
     while running_server:
         try:
-            message = socket.recv_json()
-            # if message:
-            #     print("recieve:", message)
-            #     node.send_output("message", pa.array(message))
+            # message = socket.recv_json()
+            # event_id = message["event_id"]
+            # encoded_buffer = message["buffer"]
+
+            # # 解码 base64 数据
+            # buffer_bytes = base64.b64decode(encoded_buffer)
+            # # received_buffer = pa.Buffer.from_pybytes(buffer_bytes)
+
+            # # 处理接收到的数据
+            # print(f"Received event: {event_id}")
+            # print(f"Buffer size: {len(buffer_bytes)} bytes")
+
+            # # 转换为 numpy 数组用于 OpenCV 解码
+            # # img_data = received_buffer.to_pybytes()
+            # img_array = np.frombuffer(buffer_bytes, dtype=np.uint8)
+            # frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
+            # if frame is not None:
+            #     with lock:
+            #         images[event_id] = frame
+
+
+            message_parts = socket.recv_multipart()
+            if len(message_parts) < 2:
+                continue  # 协议错误
+
+            event_id = message_parts[0].decode('utf-8')
+            buffer_bytes = message_parts[1]
+
+            # 解码图像
+            img_array = np.frombuffer(buffer_bytes, dtype=np.uint8)
+            frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+            if frame is not None:
+                with lock:
+                    recv_images[event_id] = frame
+        except zmq.Again:
+            # 接收超时，继续循环
+            print(f"Received Timeout")
+            continue
         except Exception as e:
             print("recv error:", e)
             break
+
 
 class OpenCVCamera:
     def __init__(self, config: OpenCVCameraConfig):
@@ -108,7 +154,8 @@ class AlohaManipulator:
 
         self.cameras = make_cameras_from_configs(self.config.cameras)
 
-
+        recv_thread = threading.Thread(target=recv_server, daemon=True)
+        recv_thread.start()
         
         self.is_connected = False
         self.logs = {}
@@ -255,10 +302,11 @@ class AlohaManipulator:
 
         # Capture images from cameras
         
-        for name in self.cameras:
+        images = {}
+        for name, frame in recv_images.items():
             now = time.perf_counter()
             
-
+            images[name] = frame
 
             # images[name] = self.cameras[name].async_read()
             images[name] = torch.from_numpy(images[name])

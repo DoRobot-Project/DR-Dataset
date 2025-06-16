@@ -7,6 +7,7 @@ from functools import cache
 import traceback
 import time
 from termcolor import colored
+import cv2
 
 from lerobot_lite.configs.robot import RobotConfig
 from lerobot_lite.configs import parser
@@ -451,15 +452,15 @@ def control_loop(
             frame = {**observation, **action, "task": single_task}
             dataset.add_frame(frame)
 
-        # # print("after dataset ")
-        # cv2_display_start_t = time.perf_counter()
-        # # keboard_key = 0
-        # if display_cameras and not is_headless():
-        #     # print("in display_cameras ")
-        #     image_keys = [key for key in observation if "image" in key]
-        #     for i, key in enumerate(image_keys, start=1):
-        #         # image_show[i].async_image_show(key, observation[key])
-        #         cv2.imshow(key, cv2.cvtColor(observation[key].numpy(), cv2.COLOR_RGB2BGR))
+        # print("after dataset ")
+        cv2_display_start_t = time.perf_counter()
+        # keboard_key = 0
+        if display_cameras and not is_headless():
+            # print("in display_cameras ")
+            image_keys = [key for key in observation if "image" in key]
+            for i, key in enumerate(image_keys, start=1):
+                # image_show[i].async_image_show(key, observation[key])
+                cv2.imshow(key, cv2.cvtColor(observation[key].numpy(), cv2.COLOR_RGB2BGR))
 
         # keboard_key = cv2.waitKey(1)
         # cv_display_dt_s = time.perf_counter() - cv2_display_start_t
